@@ -53,9 +53,10 @@ void initOpenGL () {
     viewUp.v3 = 0;
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
-    gluLookAt(viewPt.v1, viewPt.v2, viewPt.v3,
-	    viewCenter.v1, viewCenter.v2, viewCenter.v3,
-	    viewUp.v1, viewUp.v2, viewUp.v3);
+    gluLookAt(0,0,0,0,0,-1,0,1,0);
+//    gluLookAt(viewPt.v1, viewPt.v2, viewPt.v3,
+//	    viewCenter.v1, viewCenter.v2, viewCenter.v3,
+//	    viewUp.v1, viewUp.v2, viewUp.v3);
 }
 
 void mouseClicked(int button, int state, int x, int y) {
@@ -66,15 +67,17 @@ void mouseClicked(int button, int state, int x, int y) {
 }
 
 void mouseMoved(int x, int y) {
-
-    Vector diff = subtractV(viewPt, viewCenter);
+    //Vector diff = subtractV(viewPt, viewCenter);
     glMatrixMode(GL_MODELVIEW);
     if (x != xstart) {
-	std::cout << "x-x " << x-xstart << " y: " << y << "\n";
-	//glRotatef(360*(abs(x-xstart)/DISP_SIZE), diff.v1, diff.v2, diff.v3);
-	glRotatef(30, diff.v1, diff.v2, diff.v3);
+	std::cout << "x " << x << " y: " << y << "\n";
+	glTranslatef(0,0,1);
+	//glRotatef( (xstart-x), 0, 1, 0);
+	glRotatef(45, 0, 1, 0);
+	glTranslatef(.707,0,.707);
     }
 
+    glutPostRedisplay();
     xstart = x;
     ystart = y;
 }
