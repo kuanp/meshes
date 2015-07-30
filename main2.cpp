@@ -8,7 +8,7 @@
 
 #include <iostream>
 #include "SimpleImage.h"
-#include "util.h"
+:x
 
 void screenshot(){
     int w = glutGet(GLUT_WINDOW_WIDTH);
@@ -33,30 +33,21 @@ const int DISP_SIZE = 512;
 int xstart;
 int ystart;
 
-Vector viewPt;
-Vector viewCenter;
-Vector viewUp;
+Point3f viewPt, viewCtr, viewUp;
 
 void initOpenGL () {
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
     glFrustum(-1,1,-1,1,1,5);
 
-    viewPt.v1 = 0;
-    viewPt.v2 = 0;
-    viewPt.v3 = 0;
-    viewCenter.v1 = 0;
-    viewCenter.v2 = 0;
-    viewCenter.v3 = -1;
-    viewUp.v1 = 0;
-    viewUp.v2 = 1;
-    viewUp.v3 = 0;
+    viewPt = Point3f(0,0,0);
+    viewCtr = Point3f(0,0,-2);
+    viewUp = Point3f(0,1,0);
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
-    gluLookAt(0,0,0,0,0,-1,0,1,0);
-//    gluLookAt(viewPt.v1, viewPt.v2, viewPt.v3,
-//	    viewCenter.v1, viewCenter.v2, viewCenter.v3,
-//	    viewUp.v1, viewUp.v2, viewUp.v3);
+    gluLookAt(viewPt.x, viewPt.y, viewPt.z,
+	    viewCtr.x, viewCtr.y, viewCtr.z,
+	    viewUp.x, viewUp.y, viewUp.z);
 }
 
 void mouseClicked(int button, int state, int x, int y) {
@@ -64,22 +55,41 @@ void mouseClicked(int button, int state, int x, int y) {
 	xstart = x;
 	ystart = y;
     }
+    std::cout << "x start" << xstart << " ystart: " << ystart << "\n";
 }
 
 void mouseMoved(int x, int y) {
-    //Vector diff = subtractV(viewPt, viewCenter);
     glMatrixMode(GL_MODELVIEW);
+
     if (x != xstart) {
-	std::cout << "x " << x << " y: " << y << "\n";
-	glTranslatef(0,0,1);
-	//glRotatef( (xstart-x), 0, 1, 0);
-	glRotatef(45, 0, 1, 0);
-	glTranslatef(.707,0,.707);
+	std::cout << "x " << viewCtr.x << " y: " << viewCtr.y << " z " << viewCtr.z << "\n";
+	glTranslatef(viewCtr.x, viewCtr.y, viewCtr.z);
+	glRotatef(xstart - x, viewUp.x, viewUp.y, viewUp.z);
+	glTranslatef(-viewCtr.x, -viewCtr.y, -viewCtr.z);
+    }
+
+    if ( y != ystart) {
+
     }
 
     glutPostRedisplay();
     xstart = x;
     ystart = y;
+}
+
+void keyPressed(unsigned char key, int x, int y) {
+    Point3f diff = (-(viewCtr - viewPt)).normal();
+    if (key == 'w') {
+	glTranslatef(diff.x, diff.y, diff.z);
+	viewCtr = viewCtr + diff;
+	viewPt = viewPt + diff;
+    } else if (key == 's') {
+	diff = -diff;
+	glTranslatef(diff.x, diff.y, diff.z);
+	viewCtr = viewCtr + diff;
+	viewPt = viewPt + diff;
+    }
+    glutPostRedisplay();
 }
 
 void display() {
@@ -103,6 +113,8 @@ int main(int argc, char **argv) {
 
     std::cout<< "xxxxxxx\n";
     glutDisplayFunc(display);
+    glutMouseFunc(mouseClicked);
+    glutKeyboardFunc(keyPressed);
     glutMotionFunc(mouseMoved);
     glutMainLoop();
     return 0;

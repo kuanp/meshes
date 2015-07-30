@@ -28,4 +28,4 @@ main4: main4.cpp
 main3: main3.cpp
 	$(CC) $(CFLAGS) main4.cpp SimpleImage.cpp stb.cpp -o main4
 # deletes main1 and main2 when "make clean" is called
-clean:        rm main1 main2 main3 main4
+clean:        rm main1 main2

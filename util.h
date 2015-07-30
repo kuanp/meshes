@@ -18,6 +18,23 @@ struct Point2f {
 
 };
 
+// a 3D Point with coordinates (x, y, z)
+struct Point3f {
+  float x, y, z;
+
+  Point3f() { x = 0. ;  y = 0. ; z = 0.; }
+  Point3f(float _x, float _y, float _z) { x = _x; y = _y; z = _z;}
+
+  Point3f normal() {
+      return Point3f(x/sqrt(pow(x, 2) + pow(y, 2) + pow(z,2)),
+		y/sqrt(pow(x, 2) + pow(y, 2) + pow(z,2)),
+		z/sqrt(pow(x, 2) + pow(y, 2) + pow(z,2))); }
+  Point3f operator*(float s) { return Point3f(x * s, y * s, z * s); }
+  Point3f operator-() { return Point3f(-x, -y, -z); }
+  Point3f operator-(Point3f const o) { return Point3f(x - o.x, y - o.y, z-o.z); }
+  Point3f operator+(Point3f const o) { return Point3f(x + o.x, y + o.y, z+o.z); }
+};
+
 // A 2D line from point a to point b.
 struct Line2f {
   Point2f a, b;
@@ -35,7 +52,6 @@ struct Triangle2f {
   Triangle2f(Point2f _a, Point2f _b, Point2f _c) { a = _a; b = _b; c = _c; }
   void color_verts(RGBColor _a, RGBColor _b, RGBColor _c) { a_color = _a; b_color = _b; c_color = _c;}
 };
-
 
 // [ m11 m12 m13 ]
 // [ m21 m22 m23 ]
