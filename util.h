@@ -53,6 +53,22 @@ struct Triangle2f {
   void color_verts(RGBColor _a, RGBColor _b, RGBColor _c) { a_color = _a; b_color = _b; c_color = _c;}
 };
 
+struct Triangle3f {
+  Point3f a, b, c;
+  Point3f a_normal, b_normal, c_normal;
+  Point2f a_texture, b_texture, c_texture;
+  RGBColor a_color, b_color, c_color;
+
+  Triangle3f() {a = Point3f(); b = Point3f(); c = Point3f(); }
+  Triangle3f(Point3f _a, Point3f _b, Point3f _c) { a = _a; b = _b; c = _c; }
+
+
+  void color_verts(RGBColor _a, RGBColor _b, RGBColor _c) { a_color = _a; b_color = _b; c_color = _c;}
+  void normal_verts(Point3f _a, Point3f _b, Point3f _c) { a_normal = _a; b_normal = _b; c_normal = _c;}
+  void texture_verts(Point2f _a, Point2f _b, Point2f _c) { a_texture = _a; b_texture = _b; c_texture = _c;}
+};
+
+
 // [ m11 m12 m13 ]
 // [ m21 m22 m23 ]
 // [ m31 m32 m33 ]

@@ -6,9 +6,76 @@
 #include <GL/glut.h>
 #endif
 
+using namespace std;
+#include <fstream>
 #include <iostream>
+#include <vector>
 #include "SimpleImage.h"
-:x
+#include "util.h"
+
+const int DISP_SIZE = 512;
+int xstart;
+int ystart;
+
+Point3f viewPt, viewCtr, viewUp;
+vector<Point3f> vertices;
+vector<Point3f> normals;
+vector<Point2f> textures;
+vector<Triangle3f> faces;
+
+void readFile(string filename) {
+    ifstream input(filename);
+    string linebuffer;
+
+    while (input && getline(input, linebuffer)) {
+	//cout << linebuffer.substr(0,2) << "\n";
+	if(linebuffer.length() == 0) continue;
+	if(linebuffer[0] == '#') continue;
+	if(linebuffer.substr(0,2) == "v ") {
+	    Point3f v;
+	    //cout << "actual line: " << linebuffer;
+	    sscanf(linebuffer.c_str(), "v %f %f %f", &v.x, &v.y, &v.z);
+	    //cout << " " << v.x << " " << v.y << " " << v.z << "\n";
+	    vertices.push_back(v);
+	} else if (linebuffer.substr(0, 2) == "vn") {
+	    Point3f v;
+	    sscanf(linebuffer.c_str(), "vn %f %f %f", &v.x, &v.y, &v.z);
+	    normals.push_back(v);
+	} else if (linebuffer.substr(0, 2) == "vt") {
+	    Point2f v;
+	    sscanf(linebuffer.c_str(), "vt %f %f", &v.x, &v.y);
+	    textures.push_back(v);
+	} else if (linebuffer.substr(0, 2) == "vp") {
+	} else if (linebuffer.substr(0, 2) == "f ") {
+	    Triangle3f tri;
+
+	    char s1[20], s2[20], s3[20];
+	    cout << "actual line: " << linebuffer;
+	    // cout << v1<< v2<< v3<< t1<< t2<< t3<< n1 << n2 << n3 <<" \n";
+	    sscanf(linebuffer.c_str(), "f %*d%s %s %s", s1, s2, s3);
+	    // cout << s1 << s2 << s3 << "\n";
+	    string test = (string) s1;
+
+	    // do test to determine the format of the faces.
+	    if (s1[0] == '/') {
+		if (s1[1] == '/') {
+		    cout << "case double slash\n";
+		} else if (test.find('/', 1) != -1){
+		    cout << "all three here \n";
+		} else {
+		    cout << "no normal \n";
+		}
+	    } else {
+		cout << "only vertex data\n";
+		int a, b, c;
+		sscanf(linebuffer.c_str(), "f %d %d %d", &a, &b, &c);
+//		cout << a << b << c <<"\n";
+		tri = Triangle3f(vertices[a], vertices[b], vertices[c]);
+		cout << tri.a.x << "\n";
+	    }
+	}
+    }
+}
 
 void screenshot(){
     int w = glutGet(GLUT_WINDOW_WIDTH);
@@ -28,12 +95,6 @@ void screenshot(){
     }
     shot.save("screenshot.png");
 }
-
-const int DISP_SIZE = 512;
-int xstart;
-int ystart;
-
-Point3f viewPt, viewCtr, viewUp;
 
 void initOpenGL () {
     glMatrixMode(GL_PROJECTION);
@@ -62,14 +123,15 @@ void mouseMoved(int x, int y) {
     glMatrixMode(GL_MODELVIEW);
 
     if (x != xstart) {
-	std::cout << "x " << viewCtr.x << " y: " << viewCtr.y << " z " << viewCtr.z << "\n";
 	glTranslatef(viewCtr.x, viewCtr.y, viewCtr.z);
 	glRotatef(xstart - x, viewUp.x, viewUp.y, viewUp.z);
 	glTranslatef(-viewCtr.x, -viewCtr.y, -viewCtr.z);
     }
 
     if ( y != ystart) {
-
+	glTranslatef(viewCtr.x, viewCtr.y, viewCtr.z);
+	glRotatef(ystart - y, 1, 0, 0);
+	glTranslatef(-viewCtr.x, -viewCtr.y, -viewCtr.z);
     }
 
     glutPostRedisplay();
@@ -78,16 +140,11 @@ void mouseMoved(int x, int y) {
 }
 
 void keyPressed(unsigned char key, int x, int y) {
-    Point3f diff = (-(viewCtr - viewPt)).normal();
+    glMatrixMode(GL_PROJECTION);
     if (key == 'w') {
-	glTranslatef(diff.x, diff.y, diff.z);
-	viewCtr = viewCtr + diff;
-	viewPt = viewPt + diff;
+	glScalef(2, 2, 1);
     } else if (key == 's') {
-	diff = -diff;
-	glTranslatef(diff.x, diff.y, diff.z);
-	viewCtr = viewCtr + diff;
-	viewPt = viewPt + diff;
+	glScalef(.5, .5, 1);
     }
     glutPostRedisplay();
 }
@@ -104,14 +161,16 @@ void display() {
     glFlush();
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char *argv[]) {
+    if (argc > 1) {
+        readFile(string(argv[1]));
+    }
     glutInit(&argc,argv);
     glutInitWindowSize(DISP_SIZE, DISP_SIZE);
     glutInitDisplayMode(GLUT_RGB);
     glutCreateWindow("Hello World");
     initOpenGL();
 
-    std::cout<< "xxxxxxx\n";
     glutDisplayFunc(display);
     glutMouseFunc(mouseClicked);
     glutKeyboardFunc(keyPressed);
