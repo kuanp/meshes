@@ -14,6 +14,11 @@ using namespace std;
 #include "util.h"
 
 const int DISP_SIZE = 512;
+const int VERT_ONLY = 0;
+const int NORMAL = 1;
+const int TEXTURE = 2;
+const int ALL = 3;
+
 int xstart;
 int ystart;
 
@@ -22,6 +27,19 @@ vector<Point3f> vertices;
 vector<Point3f> normals;
 vector<Point2f> textures;
 vector<Triangle3f> faces;
+int inputCase;
+GLuint textureID;
+
+void readTexture(string filename) {
+    glGenTextures(1, &textureID);
+    glEnable(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D, textureID);
+    SimpleImage texture(filename);
+    int w = texture.width();
+    int h = texture.height();
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, w, h, 0, GL_RGB, GL_FLOAT, texture.data());
+}
 
 void readFile(string filename) {
     ifstream input(filename);
@@ -46,6 +64,7 @@ void readFile(string filename) {
 	    sscanf(linebuffer.c_str(), "vt %f %f", &v.x, &v.y);
 	    textures.push_back(v);
 	} else if (linebuffer.substr(0, 2) == "vp") {
+	    //no instruction yet
 	} else if (linebuffer.substr(0, 2) == "f ") {
 	    Triangle3f tri;
 
@@ -59,20 +78,49 @@ void readFile(string filename) {
 	    // do test to determine the format of the faces.
 	    if (s1[0] == '/') {
 		if (s1[1] == '/') {
-		    cout << "case double slash\n";
+		    cout << "has normalz\n";
+		    inputCase = NORMAL;
+
+		    int a, b, c, n1, n2, n3;
+		    sscanf(linebuffer.c_str(), "f %d//%d %d//%d %d//%d",
+			    &a, &n1, &b, &n2, &c, &n3);
+		    tri = Triangle3f(vertices[a - 1], vertices[b - 1], vertices[c-1]);
+		    tri.normal_verts(normals[n1 -1], normals[n2 -1], normals[n3 -1]);
 		} else if (test.find('/', 1) != -1){
 		    cout << "all three here \n";
+		    inputCase = ALL;
+		    int a, b, c, t1, t2, t3, n1, n2, n3;
+		    sscanf(linebuffer.c_str(),
+			    "f %d/%d/%d %d/%d/%d %d/%d/%d",
+			    &a, &t1, &n1, &b, &t2, &n2, &c, &t3, &n3);
+
+		    tri = Triangle3f(vertices[a-1], vertices[b-1], vertices[c-1]);
+		    tri.normal_verts(normals[n1-1], normals[n2-1], normals[n3-1]);
+		    tri.texture_verts(textures[t1-1], textures[t2-1], textures[t3-1]);
 		} else {
 		    cout << "no normal \n";
+		    inputCase = TEXTURE;
+
+		    int a, b, c, t1, t2, t3;
+		    sscanf(linebuffer.c_str(),
+			    "f %d/%d %d/%d %d/%d",
+			    &a, &t1, &b, &t2, &c, &t3);
+
+		    tri = Triangle3f(vertices[a-1], vertices[b-1], vertices[c-1]);
+		    tri.texture_verts(textures[t1-1], textures[t2-1], textures[t3-1]);
 		}
 	    } else {
 		cout << "only vertex data\n";
+		inputCase = VERT_ONLY;
+
 		int a, b, c;
 		sscanf(linebuffer.c_str(), "f %d %d %d", &a, &b, &c);
 //		cout << a << b << c <<"\n";
-		tri = Triangle3f(vertices[a], vertices[b], vertices[c]);
-		cout << tri.a.x << "\n";
+		tri = Triangle3f(vertices[a-1], vertices[b-1], vertices[c-1]);
 	    }
+
+	    // ready for render!
+	    faces.push_back(tri);
 	}
     }
 }
@@ -99,10 +147,16 @@ void screenshot(){
 void initOpenGL () {
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    glFrustum(-1,1,-1,1,1,5);
+    glFrustum(-2,2,-2,2,1,5);
+//    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    glEnable(GL_CULL_FACE);
+//    viewPt = Point3f(0,0,-2);
+//    viewCtr = Point3f(0,0,0);
+//    viewUp = Point3f(0,1,0);
 
-    viewPt = Point3f(0,0,0);
-    viewCtr = Point3f(0,0,-2);
+    viewPt = Point3f(0,0,-2);
+    viewCtr = Point3f(0,0,0);
     viewUp = Point3f(0,1,0);
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
@@ -145,31 +199,74 @@ void keyPressed(unsigned char key, int x, int y) {
 	glScalef(2, 2, 1);
     } else if (key == 's') {
 	glScalef(.5, .5, 1);
+    } else if (key == ' ') {
+	screenshot();
     }
     glutPostRedisplay();
 }
 
+void renderVertex(Point3f vert, Point3f n, Point2f t) {
+	glVertex3f(vert.x, vert.y, vert.z);
+//	cout << " x: " << vert.x << " y: " << vert.y <<
+//	    " z: " << vert.z << "\n";
+
+
+	if (inputCase == ALL || inputCase == NORMAL) {
+	    glNormal3f(n.x, n.y, n.z);
+	}
+	if (inputCase == ALL || inputCase == TEXTURE) {
+	    cout << " u: " << t.x << " v: " << t.y << "\n";
+	    glTexCoord2f(t.x, t.y);
+	}
+}
+
+
 void display() {
     glClearColor(1, 1, 1, 1);
     glClear(GL_COLOR_BUFFER_BIT);
+
     glBegin(GL_TRIANGLES);
     glColor3f(0,0,1);
-    glVertex3f(-1,-1, -2);
-    glVertex3f( 1,-1, -2);
-    glVertex3f( 0, 1, -2);
+    cout << faces.size() << " \n";
+    for(auto& tri: faces) {
+	renderVertex(tri.a, tri.a_normal, tri.a_texture);
+	renderVertex(tri.b, tri.b_normal, tri.b_texture);
+	renderVertex(tri.c, tri.c_normal, tri.c_texture);
+
+//	glVertex3f(tri.b.x, tri.b.y, tri.b.z);
+//	if (inputCase == ALL || inputCase == NORMAL) {
+//	    glNormal3f(tri.b_normal.x, tri.b_normal.y, tri.b_normal.z);
+//	}
+//	if (inputCase == ALL || inputCase == TEXTURE) {
+//	    glTexCoord2f(tri.b_texture.x, tri.b_texture.y);
+//	}
+//
+//	glVertex3f(tri.c.x, tri.c.y, tri.c.z);
+//	if (inputCase == ALL || inputCase == NORMAL) {
+//	    glNormal3f(tri.c_normal.x, tri.c_normal.y, tri.c_normal.z);
+//	}
+//	if (inputCase == ALL || inputCase == TEXTURE) {
+//	    glTexCoord2f(tri.c_texture.x, tri.c_texture.y);
+//	}
+    }
     glEnd();
     glFlush();
 }
 
 int main(int argc, char *argv[]) {
-    if (argc > 1) {
-        readFile(string(argv[1]));
+    if (argc == 1) {
+	cout << "Specify obj file to import\n";
+	return 0;
     }
+    readFile(string(argv[1]));
     glutInit(&argc,argv);
     glutInitWindowSize(DISP_SIZE, DISP_SIZE);
     glutInitDisplayMode(GLUT_RGB);
     glutCreateWindow("Hello World");
     initOpenGL();
+    if (argc == 3) {
+	readTexture(string(argv[2]));
+    }
 
     glutDisplayFunc(display);
     glutMouseFunc(mouseClicked);
