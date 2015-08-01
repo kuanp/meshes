@@ -31,9 +31,6 @@ int inputCase;
 GLuint textureID;
 
 void readTexture(string filename) {
-    glGenTextures(1, &textureID);
-    glEnable(GL_TEXTURE_2D);
-    glBindTexture(GL_TEXTURE_2D, textureID);
     SimpleImage texture(filename);
     int w = texture.width();
     int h = texture.height();
@@ -145,19 +142,29 @@ void screenshot(){
 }
 
 void initOpenGL () {
+    // Polygon mode stuff
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_BACK);
+
+    glGenTextures(1, &textureID);
+    glBindTexture(GL_TEXTURE_2D, textureID);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
+    viewPt = Point3f(0,0,-2);
+    viewCtr = Point3f(0.5,0.5,0.5);
+    viewUp = Point3f(0,1,0);
+
+    // view and other things.
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    glFrustum(-1,1,-1,1,1,10);
-//    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    glEnable(GL_CULL_FACE);
+    glFrustum(-1,1,-1,1,1,5);
 //    viewPt = Point3f(0,0,-2);
 //    viewCtr = Point3f(0,0,0);
 //    viewUp = Point3f(0,1,0);
 
-    viewPt = Point3f(0,0,-4);
-    viewCtr = Point3f(0,0,0);
-    viewUp = Point3f(0,1,0);
+
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
     gluLookAt(viewPt.x, viewPt.y, viewPt.z,
@@ -170,7 +177,6 @@ void mouseClicked(int button, int state, int x, int y) {
 	xstart = x;
 	ystart = y;
     }
-    std::cout << "x start" << xstart << " ystart: " << ystart << "\n";
 }
 
 void mouseMoved(int x, int y) {
@@ -206,51 +212,39 @@ void keyPressed(unsigned char key, int x, int y) {
 }
 
 void renderVertex(Point3f vert, Point3f n, Point2f t) {
-	glVertex3f(vert.x, vert.y, vert.z);
 //	cout << " x: " << vert.x << " y: " << vert.y <<
 //	    " z: " << vert.z << "\n";
 
 
-	if (inputCase == ALL || inputCase == NORMAL) {
-	    glNormal3f(n.x, n.y, n.z);
-	}
-	if (inputCase == ALL || inputCase == TEXTURE) {
-	    cout << " u: " << t.x << " v: " << t.y << "\n";
-	    glTexCoord2f(t.x, t.y);
-	}
+    if (inputCase == ALL || inputCase == NORMAL) {
+        glNormal3f(n.x, n.y, n.z);
+    }
+    if (inputCase == ALL || inputCase == TEXTURE) {
+//        cout << " u: " << t.x << " v: " << t.y << "\n";
+        glTexCoord2f(t.x, t.y);
+    }
+    glVertex3f(vert.x, vert.y, vert.z);
 }
-
 
 void display() {
     glClearColor(1, 1, 1, 1);
     glClear(GL_COLOR_BUFFER_BIT);
 
+
+    glEnable(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D, textureID);
+
     glBegin(GL_TRIANGLES);
-    glColor3f(0,0,1);
-    cout << faces.size() << " \n";
+//    glColor3f(0,0,1);
+//    cout << faces.size() << " \n";
     for(auto& tri: faces) {
 	renderVertex(tri.a, tri.a_normal, tri.a_texture);
 	renderVertex(tri.b, tri.b_normal, tri.b_texture);
 	renderVertex(tri.c, tri.c_normal, tri.c_texture);
-
-//	glVertex3f(tri.b.x, tri.b.y, tri.b.z);
-//	if (inputCase == ALL || inputCase == NORMAL) {
-//	    glNormal3f(tri.b_normal.x, tri.b_normal.y, tri.b_normal.z);
-//	}
-//	if (inputCase == ALL || inputCase == TEXTURE) {
-//	    glTexCoord2f(tri.b_texture.x, tri.b_texture.y);
-//	}
-//
-//	glVertex3f(tri.c.x, tri.c.y, tri.c.z);
-//	if (inputCase == ALL || inputCase == NORMAL) {
-//	    glNormal3f(tri.c_normal.x, tri.c_normal.y, tri.c_normal.z);
-//	}
-//	if (inputCase == ALL || inputCase == TEXTURE) {
-//	    glTexCoord2f(tri.c_texture.x, tri.c_texture.y);
-//	}
     }
     glEnd();
     glFlush();
+    glDisable(GL_TEXTURE_2D);
 }
 
 int main(int argc, char *argv[]) {

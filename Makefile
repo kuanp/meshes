@@ -23,9 +23,10 @@ main1: main1.cpp
 # Identical to the above, except with main2 instead of main1
 main2: main2.cpp
 	$(CC) $(CFLAGS) main2.cpp SimpleImage.cpp stb.cpp -o main2
-main4: main4.cpp
-	$(CC) $(CFLAGS) main3.cpp SimpleImage.cpp stb.cpp -o main3
 main3: main3.cpp
+	$(CC) $(CFLAGS) main3.cpp SimpleImage.cpp stb.cpp -o main3
+main4: main4.cpp
 	$(CC) $(CFLAGS) main4.cpp SimpleImage.cpp stb.cpp -o main4
-# deletes main1 and main2 when "make clean" is called
-clean:        rm main1 main2
+#deletes main1 and main2 when "make clean" is called
+clean:
+	rm main1 main2 main3 main4
