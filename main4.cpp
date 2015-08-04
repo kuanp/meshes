@@ -38,6 +38,25 @@ void readTexture(string filename) {
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, w, h, 0, GL_RGB, GL_FLOAT, texture.data());
 }
 
+Point3f computeNormal(Point3f v1, Point3f v2, Point3f v3){
+    Point3f V = v2 - v1;
+    Point3f W = v3 - v1;
+
+    Point3f result;
+    result.x = (V.y * W.z) - (V.z * W.y);
+    result.y = (V.z * W.x) - (V.x * W.z);
+    result.z = (V.x * W.y) - (V.y * W.x);
+
+    //cout << "normals" << result.x << " " << result.y << " " << result.z << "\n";
+    float scalar = sqrt(pow(result.x, 2) + pow(result.y, 2) + pow(result.z, 2));
+    if (scalar != 1) {
+	result.x /= scalar;
+	result.y /= scalar;
+	result.z /= scalar;
+    }
+    return result;
+}
+
 void readFile(string filename) {
     ifstream input(filename);
     string linebuffer;
@@ -105,6 +124,9 @@ void readFile(string filename) {
 
 		    tri = Triangle3f(vertices[a-1], vertices[b-1], vertices[c-1]);
 		    tri.texture_verts(textures[t1-1], textures[t2-1], textures[t3-1]);
+		    // computes a normal.
+		    Point3f normal = computeNormal(vertices[a-1], vertices[b-1], vertices[c-1]);
+		    tri.normal_verts(normal, normal, normal);
 		}
 	    } else {
 		cout << "only vertex data\n";
@@ -114,6 +136,10 @@ void readFile(string filename) {
 		sscanf(linebuffer.c_str(), "f %d %d %d", &a, &b, &c);
 //		cout << a << b << c <<"\n";
 		tri = Triangle3f(vertices[a-1], vertices[b-1], vertices[c-1]);
+
+		// computes a normal.
+		Point3f normal = computeNormal(vertices[a-1], vertices[b-1], vertices[c-1]);
+		tri.normal_verts(normal, normal, normal);
 	    }
 
 	    // ready for render!
@@ -152,14 +178,14 @@ void initOpenGL () {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
-    viewPt = Point3f(0,0,-2);
+    viewPt = Point3f(0,-5,5);
     viewCtr = Point3f(0.5,0.5,0.5);
     viewUp = Point3f(0,1,0);
 
     // view and other things.
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    glFrustum(-1,1,-1,1,1,5);
+    glFrustum(-1,1,-1,1,1,10);
 //    viewPt = Point3f(0,0,-2);
 //    viewCtr = Point3f(0,0,0);
 //    viewUp = Point3f(0,1,0);
@@ -216,13 +242,13 @@ void renderVertex(Point3f vert, Point3f n, Point2f t) {
 //	    " z: " << vert.z << "\n";
 
 
-    if (inputCase == ALL || inputCase == NORMAL) {
-        glNormal3f(n.x, n.y, n.z);
-    }
     if (inputCase == ALL || inputCase == TEXTURE) {
 //        cout << " u: " << t.x << " v: " << t.y << "\n";
         glTexCoord2f(t.x, t.y);
     }
+
+    //cout << "normals" << n.x << " " << n.y << " " << n.z << "\n";
+    glNormal3f(n.x, n.y, n.z);
     glVertex3f(vert.x, vert.y, vert.z);
 }
 
@@ -230,12 +256,28 @@ void display() {
     glClearColor(1, 1, 1, 1);
     glClear(GL_COLOR_BUFFER_BIT);
 
+    //def lights
+    glEnable(GL_LIGHTING);
+    glEnable(GL_LIGHT0);
+    glEnable(GL_DEPTH_TEST);
+    glShadeModel(GL_FLAT);
 
+    GLfloat light_ambient[] = {0.3, 0.3, 0.3, 1};
+    GLfloat light_diffuse[] = {.7, .7, .7, 1};
+//    GLfloat light_specular[] = {1, 1, 1, 1};
+    GLfloat light_position[] = {0, -10, 4, 0};
+
+    glLightfv(GL_LIGHT0, GL_AMBIENT, light_ambient);
+    glLightfv(GL_LIGHT0, GL_DIFFUSE, light_diffuse);
+//    glLightfv(GL_LIGHT0, GL_SPECULAR, light_specular);
+    glLightfv(GL_LIGHT0, GL_POSITION, light_position);
+
+    //Textures
     glEnable(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, textureID);
 
     glBegin(GL_TRIANGLES);
-//    glColor3f(0,0,1);
+//    glColor3f(.8,.8,.8);
 //    cout << faces.size() << " \n";
     for(auto& tri: faces) {
 	renderVertex(tri.a, tri.a_normal, tri.a_texture);
